@@ -1,16 +1,83 @@
-from django.shortcuts import render
-from django.http import HttpResponse, HttpResponseRedirect
+import json
+import traceback
+from datetime import datetime
+import base64
+
+from django.utils import timezone
+from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponse
 from django.views import View
 from django.contrib.auth import authenticate, login, logout
-from django.urls import reverse
-
 from django.contrib.auth.models import User
+from django.urls import reverse
+from django.core.files.base import ContentFile
+
+from . serializers import TaskSerializer, PhotoSerializer, UserSerializer
+from . models import Task, Photo
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import serializers, status
+
 
 # Create your views here.
 class IndexView(View):
     def get(self, request, *args, **kwargs):
         return render(request, 'tasks/index.html', {})
 
+# create-task
+class CreateTaskView(View):
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            print(data)
+            
+            # Convert due_date string to datetime
+            due_date_str = data['due_date']
+            due_date = datetime.strptime(due_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            
+            serializers = TaskSerializer(data={
+                'title': data['title'],
+                'description': data['description'],
+                'due_date': due_date,
+                'priority': data['priority'],
+                'is_complete': data['is_complete'],
+                'user': request.user.id,
+            })
+            
+            if not serializers.is_valid():
+                return JsonResponse({'status': 'error', 'message': serializers.errors}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # create task
+            task = Task.objects.create(
+                title=data['title'],
+                description=data['description'],
+                due_date=due_date,
+                priority=data['priority'],
+                is_complete=data['is_complete'],
+                user=request.user
+            )
+            
+            # check if photos
+            if 'photos' in data:
+                for photo_data in data['photos']:
+                    # Assuming photo_data['image'] contains a base64-encoded image
+                    image_data = base64.b64decode(photo_data['image'])
+                    
+                    # Save the image to the Photo model
+                    photo = Photo.objects.create(
+                        task=task
+                    )
+                    photo.image.save(photo_data['filename'], ContentFile(image_data), save=True)
+                
+            return JsonResponse({'status': 'success', 'message': 'Task created successfully'})
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        
 # Login
 class LoginView(View):
     def get(self, request, *args, **kwargs):
@@ -48,7 +115,8 @@ class LoginView(View):
 # Logout
 class LogoutView(View):
     def get(self, request, *args, **kwargs):
-        return render(request, 'tasks/login.html', {})
+        logout(request)
+        return HttpResponseRedirect(reverse("login"))
 
 # Register
 class RegisterView(View):
@@ -87,3 +155,38 @@ class RegisterView(View):
             "message": "Registration Success. Please login."
         })
     
+# Change Password
+class ChangePasswordView(View):
+    def put(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            # check if current password is correct
+            user = authenticate(username=request.user.username, password=data['current_password'])
+            if user is None:
+                return JsonResponse({'status': 'error', 'message': 'Current password is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+            # check if new password and confirm password is same
+            if data['new_password'] != data['confirm_password']:
+                return JsonResponse({'status': 'error', 'message': 'New password and confirm password is not same'}, status=status.HTTP_400_BAD_REQUEST)
+            # change password
+            user.set_password(data['new_password'])
+            user.save()
+            return JsonResponse({'status': 'success', 'message': 'Password changed successfully'})
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# get-user-details
+class GetUserDetailsView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            user = User.objects.get(id=request.user.id)
+            print(user) # Log the user
+            serializer = UserSerializer(user)
+            return JsonResponse({'status': 'success', 'data': serializer.data})
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+

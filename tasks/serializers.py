@@ -1,5 +1,11 @@
 from rest_framework import serializers
 from .models import Task, Photo
+from django.contrib.auth.models import User
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'is_superuser')
 
 class PhotoSerializer(serializers.ModelSerializer):
     class Meta:

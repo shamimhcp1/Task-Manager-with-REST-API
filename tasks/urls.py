@@ -12,5 +12,12 @@ urlpatterns = [
     # register
     path('register/', views.RegisterView.as_view(), name='register'),
     
-    # tasks
+    # tasks create
+    path('create-task/', views.CreateTaskView.as_view(), name='create-task'),
+
+
+    # change-password
+    path('change-password/', views.ChangePasswordView.as_view(), name='change-password'),
+    # get-user-details
+    path('get-user-details/', views.GetUserDetailsView.as_view(), name='get-user-details'),
 ]

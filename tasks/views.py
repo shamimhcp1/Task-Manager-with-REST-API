@@ -27,17 +27,17 @@ class IndexView(View):
 
 # create-task
 class CreateTaskView(View):
-    
     def post(self, request, *args, **kwargs):
         try:
-            data = json.loads(request.body)
-            print(data)
-            
+            # Use request.POST for form data
+            data = request.POST.dict()
+
             # Convert due_date string to datetime
             due_date_str = data['due_date']
-            due_date = datetime.strptime(due_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-            
-            serializers = TaskSerializer(data={
+            due_date = timezone.datetime.strptime(due_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+
+            # Create task serializer
+            serializer = TaskSerializer(data={
                 'title': data['title'],
                 'description': data['description'],
                 'due_date': due_date,
@@ -45,11 +45,11 @@ class CreateTaskView(View):
                 'is_complete': data['is_complete'],
                 'user': request.user.id,
             })
-            
-            if not serializers.is_valid():
-                return JsonResponse({'status': 'error', 'message': serializers.errors}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # create task
+
+            if not serializer.is_valid():
+                return JsonResponse({'status': 'error', 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Create task
             task = Task.objects.create(
                 title=data['title'],
                 description=data['description'],
@@ -58,26 +58,23 @@ class CreateTaskView(View):
                 is_complete=data['is_complete'],
                 user=request.user
             )
-            
-            # check if photos
-            if 'photos' in data:
-                for photo_data in data['photos']:
-                    # Assuming photo_data['image'] contains a base64-encoded image
-                    image_data = base64.b64decode(photo_data['image'])
-                    
+
+            # Check if photos
+            if 'photos' in request.FILES:
+                for photo_data in request.FILES.getlist('photos'):
+                    # Assuming photo_data is an UploadedFile object
                     # Save the image to the Photo model
                     photo = Photo.objects.create(
-                        task=task
+                        task=task,
+                        image=photo_data,
                     )
-                    photo.image.save(photo_data['filename'], ContentFile(image_data), save=True)
-                
+
             return JsonResponse({'status': 'success', 'message': 'Task created successfully'})
         except Exception as e:
             print(e)
             traceback.print_exc()
-            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)        
 
-        
 # Login
 class LoginView(View):
     def get(self, request, *args, **kwargs):

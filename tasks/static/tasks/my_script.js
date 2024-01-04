@@ -343,25 +343,18 @@ const Navbar = ({ currentView, setCurrentView, handleMenuClick, user, setUser, s
 };
 
 // create task form
-const CreateTaskForm = ({ getMessage, setMessage, currentView, setCurrentView, }) => {
+const CreateTask = ({ getMessage, setMessage, currentView, setCurrentView, }) => {
     // submitCreateTaskForm
     const submitCreateTaskForm = (e) => {
         e.preventDefault();
         const form = document.getElementById('createTaskForm');
         const formData = new FormData(form);
 
-        // formDataObject is a plain object with key-value pairs
-        const formDataObject = {};
-        formData.forEach((value, key) => {
-            formDataObject[key] = value;
-        });
-
         fetch('/tasks/create-task/', {
             method: 'POST',
-            body: JSON.stringify(formDataObject),
+            body: formData, // Use formData directly
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken'), // Include the CSRF token
+                'X-CSRFToken': getCookie('csrftoken'),
             },
         })
             .then(response => response.json())
@@ -462,9 +455,6 @@ const CreateTaskForm = ({ getMessage, setMessage, currentView, setCurrentView, }
     );
 };
 
-                    
-
-
 
 const App = () => {
     // keep updated buyer in a react state veriable
@@ -554,7 +544,7 @@ const App = () => {
                                     {/* tasks-list */}
 
                                     {/* tasks-create */}
-                                    {currentView === 'tasks-create' && <CreateTaskForm
+                                    {currentView === 'tasks-create' && <CreateTask
                                         getMessage={getMessage} setMessage={setMessage}
                                         currentView={currentView} setCurrentView={setCurrentView} />}
                                     

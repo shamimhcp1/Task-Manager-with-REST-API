@@ -14,6 +14,10 @@ urlpatterns = [
     
     # tasks create
     path('create-task/', views.CreateTaskView.as_view(), name='create-task'),
+    # tasks list
+    path('tasks-list/', views.TasksListView.as_view(), name='tasks-list'),
+    # delete-task
+    path('delete-task/<int:pk>/', views.DeleteTaskView.as_view(), name='delete-task'),
 
 
     # change-password

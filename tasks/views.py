@@ -75,6 +75,23 @@ class CreateTaskView(View):
             traceback.print_exc()
             return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)        
 
+# TasksListView with TaskSerializer
+class TasksListView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Get all tasks for the user and order by priority
+            if request.user.is_superuser:
+                tasks = Task.objects.all().order_by('priority')
+            else:
+                tasks = Task.objects.filter(user=request.user).order_by('priority')
+            # Create task serializer
+            serializer = TaskSerializer(tasks, many=True)
+            return JsonResponse({'status': 'success', 'tasksList': serializer.data})
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # Login
 class LoginView(View):
     def get(self, request, *args, **kwargs):
@@ -108,6 +125,17 @@ class LoginView(View):
             })
             
 
+# Delete Task
+class DeleteTaskView(View):
+    def delete(self, request, *args, **kwargs):
+        try:
+            task = get_object_or_404(Task, pk=kwargs['pk'])
+            task.delete()
+            return JsonResponse({'status': 'success', 'message': 'Task deleted successfully'})
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Logout
 class LogoutView(View):
@@ -172,6 +200,7 @@ class ChangePasswordView(View):
             print(e)
             traceback.print_exc()
             return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # get-user-details
 class GetUserDetailsView(View):

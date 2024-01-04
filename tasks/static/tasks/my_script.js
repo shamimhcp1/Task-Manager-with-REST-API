@@ -455,6 +455,138 @@ const CreateTask = ({ getMessage, setMessage, currentView, setCurrentView, }) =>
     );
 };
 
+// Tasks List
+const TasksList = ({ currentView, setCurrentView, getMessage, setMessage }) => {
+    // keep updated tasksList in a react state veriable
+    const [tasksList, setTasksList] = React.useState([]);
+    
+    // fetch tasks list
+    React.useEffect(() => {
+        fetch('/tasks/tasks-list')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                if (data.status === 'success') {
+                    setTasksList(data.tasksList);
+                } else {
+                    console.log('Failed to fetch tasks list. Status:', data.status);
+                }
+                setMessage(data.message); // Update message
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                setMessage('Internal Server Error'); // Use a generic error message here
+            });
+    }, []);
+
+    // deleteTask
+    const deleteTask = (taskId) => {
+        fetch(`/tasks/delete-task/${taskId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                if (data.status === 'success') {
+                    console.log('Task deleted successfully');
+                } else {
+                    console.log('Failed to delete task. Status:', data.status);
+                }
+                setMessage(data.message); // Update message
+                // remove the deleted task from the tasksList
+                const updatedTasksList = tasksList.filter(task => task.id !== id);
+                setTasksList(updatedTasksList);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                setMessage('Internal Server Error'); // Use a generic error message here
+            });
+    };
+
+    return (
+        <div className="col-md-12 col-lg-12">
+            {getMessage && (
+                <div className="alert alert-success alert-dismissible fade show" role="alert">
+                    {getMessage}
+                    <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            )}
+            <div className="card">
+                <h5 className="card-header">Tasks List</h5>
+                <div className="table-responsive text-nowrap">
+                    <table className="table">
+                        <thead className="table-light">
+                            <tr>
+                                <th className="text-truncate">SL</th>
+                                <th className="text-truncate">Title</th>
+                                <th className="text-truncate">Priority</th>
+                                <th className="text-truncate">Status</th>
+                                <th className="text-truncate">Due Date</th>
+                                <th className="text-truncate">Assign To</th>
+                                <th className="text-truncate">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {/* display loading bar before buyerlist show */}
+                            {tasksList.length === 0 && (
+                                <tr>
+                                    <td colSpan="7" className="text-center">
+                                        <div className="spinner-border text-primary" role="status">
+                                            <span className="visually-hidden">Loading...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                            
+                            {tasksList.map((task, index) => (
+                                <tr key={index}>
+                                    <td className="text-truncate">{index + 1}</td>
+                                    <td className="text-truncate">{task.title}</td>
+                                    <td className="text-truncate">
+                                        {task.priority === 'low' ? <span className="badge bg-success">Low</span> : task.priority === 'medium' ? <span className="badge bg-warning">Medium</span> : <span className="badge bg-danger">High</span>}
+                                    </td>
+                                    <td className="text-truncate">
+                                        {task.is_complete ? <span className="badge bg-success">Complete</span> : <span className="badge bg-danger">In-complete</span>}
+                                    </td>
+                                    <td className="text-truncate">
+                                        {/* due_date format only date dd-mm-yyyy */}
+                                        {task.due_date.split('T')[0].split('-').reverse().join('-')}
+                                    </td>
+                                    <td className="text-truncate">
+                                        {task.assign_to}
+                                  </td>
+                                    <td className="text-truncate">
+                                        <div className="dropdown">
+                                            <button type="button" className="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                                <i className="mdi mdi-dots-vertical"></i>
+                                            </button>
+                                            <div className="dropdown-menu">
+                                                {/* view */}
+                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault; viewTask(task.id) }}
+                                                ><i className="mdi mdi-eye-outline me-1"></i> View</a>
+                                                {/* edit */}
+                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault; editTask(task.id) }}
+                                                ><i className="mdi mdi-pencil-outline me-1"></i> Edit</a>
+                                                {/* delete */}
+                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault; deleteTask(task.id) }}
+                                                ><i className="mdi mdi-trash-can-outline me-1"></i> Delete</a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const App = () => {
     // keep updated buyer in a react state veriable
@@ -542,6 +674,11 @@ const App = () => {
                                 <div className="row gy-4">
                                     
                                     {/* tasks-list */}
+                                    {currentView === 'tasks-list' && <TasksList
+                                        getMessage={getMessage} setMessage={setMessage}
+                                        currentView={currentView} setCurrentView={setCurrentView} />}
+                                    
+                                    {/* search-result */}
 
                                     {/* tasks-create */}
                                     {currentView === 'tasks-create' && <CreateTask

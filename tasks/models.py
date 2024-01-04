@@ -18,7 +18,7 @@ class Task(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.title} ({self.user.username}) - {self.priority} - {self.is_complete}"
+        return f"{self.title} - {self.priority} - {self.is_complete} - {self.due_date} - ({self.user.username})"
 
 class Photo(models.Model):
     task = models.ForeignKey(Task, related_name='photos', on_delete=models.CASCADE)

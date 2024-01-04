@@ -14,7 +14,8 @@ class PhotoSerializer(serializers.ModelSerializer):
 
 class TaskSerializer(serializers.ModelSerializer):
     photos = PhotoSerializer(many=True, read_only=True)
+    assign_to = serializers.ReadOnlyField(source='user.username')
 
     class Meta:
         model = Task
-        fields = ('id', 'title', 'description', 'due_date', 'priority', 'is_complete', 'creation_date', 'last_update_date', 'user', 'photos')
+        fields = ('id', 'title', 'description', 'due_date', 'priority', 'is_complete', 'creation_date', 'last_update_date', 'user', 'assign_to', 'photos')

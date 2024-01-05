@@ -24,12 +24,15 @@ urlpatterns = [
     path('view-task/<int:pk>/', views.ViewTaskView.as_view(), name='view-task'),
     # delete-task-photo
     path('delete-task-photo/<int:pk>/', views.DeleteTaskPhotoView.as_view(), name='delete-task-photo'),
-
+    # update-task
+    path('update-task/<int:pk>/', views.UpdateTaskView.as_view(), name='update-task'),
 
     # change-password
     path('change-password/', views.ChangePasswordView.as_view(), name='change-password'),
-    # get-user-details
+    # get logged in user details
     path('get-user-details/', views.GetUserDetailsView.as_view(), name='get-user-details'),
+    # user-list
+    path('user-list/', views.UserListView.as_view(), name='user-list'),
 ]
 
 if settings.DEBUG:

@@ -1,9 +1,8 @@
 import json
 import traceback
-from datetime import datetime
+from datetime import datetime, time
 import base64
 
-from django.utils import timezone
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponse
 from django.views import View
@@ -18,6 +17,7 @@ from . models import Task, Photo
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import serializers, status
+from rest_framework.parsers import MultiPartParser
 
 
 # Create your views here.
@@ -31,16 +31,20 @@ class CreateTaskView(View):
         try:
             # Use request.POST for form data
             data = request.POST.dict()
-
+            print(data) # Log the data
             # Convert due_date string to datetime
             due_date_str = data['due_date']
-            due_date = timezone.datetime.strptime(due_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            print('due_date_str: ', due_date_str)
+            due_date = datetime.strptime(due_date_str, "%Y-%m-%d").date()
+
+            # Convert date to datetime
+            due_datetime = datetime.combine(due_date, time())
 
             # Create task serializer
             serializer = TaskSerializer(data={
                 'title': data['title'],
                 'description': data['description'],
-                'due_date': due_date,
+                'due_date': due_datetime,
                 'priority': data['priority'],
                 'is_complete': data['is_complete'],
                 'user': request.user.id,
@@ -62,7 +66,6 @@ class CreateTaskView(View):
             # Check if photos
             if 'photos' in request.FILES:
                 for photo_data in request.FILES.getlist('photos'):
-                    # Assuming photo_data is an UploadedFile object
                     # Save the image to the Photo model
                     photo = Photo.objects.create(
                         task=task,
@@ -91,38 +94,6 @@ class TasksListView(View):
             print(e)
             traceback.print_exc()
             return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-# Login
-class LoginView(View):
-    def get(self, request, *args, **kwargs):
-        if request.user.is_authenticated:
-            return render(request, 'tasks/index.html', {})
-        return render(request, 'tasks/login.html', {})
-        
-    def post(self, request, *args, **kwargs):
-
-        # Attempt to sign user in
-        username = request.POST["username"]
-        password = request.POST["password"]
-        user = authenticate(request, username=username, password=password)
-        print(user) # Log the user
-
-        # Check if authentication successful
-        if user is not None:
-            if user.is_active:
-                # User is authenticated and active
-                login(request, user)
-                return HttpResponseRedirect(reverse("index"))
-            else:
-                # User is authenticated but not active
-                return render(request, "tasks/login.html", {
-                    "message": "Your account is not activated. Please contact admin."
-                })
-        else:
-            # Authentication failed (invalid credentials)
-            return render(request, "tasks/login.html", {
-                "message": "Invalid username and/or password."
-            })
             
 
 # Delete Task and photos
@@ -199,6 +170,129 @@ class DeleteTaskPhotoView(View):
             traceback.print_exc()
             return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# Update Task
+class UpdateTaskView(View):
+    parser_classes = [MultiPartParser]
+
+    def put(self, request, *args, **kwargs):
+        print('Request Data:', request.data)
+        print('Request Files:', request.FILES)
+        
+        try:
+            task = Task.objects.get(id=kwargs['pk'])
+            print(request.POST.get('user'))
+            # check if user is superuser
+            if request.user.is_superuser:
+                user = User.objects.get(id=request.POST.get('user'))
+            else:
+                # check if user is authorized to update the task
+                if task.user != request.user:
+                    return JsonResponse({'status': 'error', 'message': 'You are not authorized to update this task'}, status=status.HTTP_401_UNAUTHORIZED)
+                user = request.user
+
+            # Use request.POST.get for form data
+            data = {
+                'title': request.POST.get('title'),
+                'description': request.POST.get('description'),
+                'due_date': request.POST.get('due_date'),
+                'priority': request.POST.get('priority'),
+                'is_complete': request.POST.get('is_complete'),
+                'user': user,
+            }
+            print(data) # Log the data
+
+            # Convert due_date string to datetime
+            due_date_str = data['due_date']
+            due_date = datetime.strptime(due_date_str, "%Y-%m-%d").date()
+
+            # Convert date to datetime
+            due_datetime = datetime.combine(due_date, time())
+
+            # Create task serializer
+            serializer = TaskSerializer(data={
+                'title': data['title'],
+                'description': data['description'],
+                'due_date': due_datetime,
+                'priority': data['priority'],
+                'is_complete': data['is_complete'],
+                'user': user.id,
+            })
+
+            if not serializer.is_valid():
+                return JsonResponse({'status': 'error', 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update task
+            task.title = data['title']
+            task.description = data['description']
+            task.due_date = due_date
+            task.priority = data['priority']
+            task.is_complete = data['is_complete']
+            task.save()
+
+            # Check if photos
+            if 'photos' in request.FILES:
+                for photo_data in request.FILES.getlist('photos'):
+                    # Save the image to the Photo model
+                    photo = Photo.objects.create(
+                        task=task,
+                        image=photo_data,
+                    )
+
+            return JsonResponse({'status': 'success', 'message': 'Task updated successfully'})
+        except Task.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Task does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# User List
+class UserListView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Get all users
+            users = User.objects.all()
+            # Create user serializer
+            serializer = UserSerializer(users, many=True)
+            return JsonResponse({'status': 'success', 'usersList': serializer.data})
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# Login
+class LoginView(View):
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return render(request, 'tasks/index.html', {})
+        return render(request, 'tasks/login.html', {})
+        
+    def post(self, request, *args, **kwargs):
+
+        # Attempt to sign user in
+        username = request.POST["username"]
+        password = request.POST["password"]
+        user = authenticate(request, username=username, password=password)
+        print(user) # Log the user
+
+        # Check if authentication successful
+        if user is not None:
+            if user.is_active:
+                # User is authenticated and active
+                login(request, user)
+                return HttpResponseRedirect(reverse("index"))
+            else:
+                # User is authenticated but not active
+                return render(request, "tasks/login.html", {
+                    "message": "Your account is not activated. Please contact admin."
+                })
+        else:
+            # Authentication failed (invalid credentials)
+            return render(request, "tasks/login.html", {
+                "message": "Invalid username and/or password."
+            })
+
+
 # Logout
 class LogoutView(View):
     def get(self, request, *args, **kwargs):
@@ -263,18 +357,17 @@ class ChangePasswordView(View):
             traceback.print_exc()
             return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-# get-user-details
+# get logged in user details
 class GetUserDetailsView(View):
     def get(self, request, *args, **kwargs):
         try:
-            user = User.objects.get(id=request.user.id)
-            print(user) # Log the user
-            serializer = UserSerializer(user)
-            return JsonResponse({'status': 'success', 'data': serializer.data})
+            # check if user is authenticated
+            if not request.user.is_authenticated:
+                return JsonResponse({'status': 'error', 'message': 'User is not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
+            # Create user serializer
+            serializer = UserSerializer(request.user)
+            return JsonResponse({'status': 'success', 'user': serializer.data})
         except Exception as e:
             print(e)
             traceback.print_exc()
             return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-

@@ -1,7 +1,8 @@
 const app = document.getElementById('app');
 
 // change Password
-const ChangePassword = ({ getMessage, setMessage, currentView, setCurrentView, }) => {
+const ChangePassword = ({ getMessage, setMessage, currentView, setCurrentView, user, setUser,
+    activeMenuItem, handleMenuClick }) => {
     // submitChangePasswordForm
     const submitChangePasswordForm = (e) => {
         e.preventDefault();
@@ -76,7 +77,7 @@ const ChangePassword = ({ getMessage, setMessage, currentView, setCurrentView, }
 };
 
 // Footer
-const Footer = () => {
+const Footer = ({user, setUser}) => {
     return (
         <dev>
             <footer className="content-footer footer bg-footer-theme">
@@ -95,7 +96,8 @@ const Footer = () => {
 };
 
 {/* Search Input */}
-const SearchInput = ({ searchQuery, setSearchQuery, currentView, setCurrentView }) => {
+const SearchInput = ({ searchQuery, setSearchQuery, currentView, setCurrentView, user, setUser,
+    activeMenuItem, handleMenuClick }) => {
    
     return (
       <div className="navbar-nav align-items-center">
@@ -119,66 +121,7 @@ const SearchInput = ({ searchQuery, setSearchQuery, currentView, setCurrentView 
     );
 };
 
-{/* Search Result */}
-const SearchResult = ({ currentView, setCurrentView, searchQuery,
-    getMessage, setMessage
-    }) => {
-    
-    React.useEffect(() => {
-        fetch(`/tasks/search?query=${searchQuery}`)
-            .then(response => response.json())
-            .then(data => {
-                console.log('Success:', data);
-                if (data.status === 'success') {
-                    setCurrentView('search-result');
-                }
-                else {
-                    console.log('Failed to fetch search result. Status:', data.status);
-                }
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-            }
-            );
-    }, [searchQuery]);
-
-        return (
-            <div className="col-md-12 col-lg-12">
-                {getMessage && (
-                    <div className="alert alert-success alert-dismissible fade show" role="alert">
-                        {getMessage}
-                        <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                )}
-                <div className="card">
-                    <h5 className="card-header">Your search result for : <strong>{searchQuery}</strong> </h5>
-                    <div className="table-responsive text-nowrap">
-                        <table className="table">
-                            <thead className="table-light">
-                                <tr>
-                                    <th className="text-truncate">#</th>
-                                    <th className="text-truncate">Buyer</th>
-                                    <th className="text-truncate">Style</th>
-                                    <th className="text-truncate">Color</th>
-                                    <th className="text-truncate">Result</th>
-                                    <th className="text-truncate">Create Date</th>
-                                    <th className="text-truncate">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {/* display loading bar before reportList show */}
-    
-                            </tbody>
-                        </table>
-                    </div>
-    
-                </div>
-    
-            </div>
-    );
-};
-
-const Sidebar = ({ currentView, handleMenuClick, handleMainMenuClick, activeMainMenuItem, activeMenuItem, user, setUser }) => {
+const Sidebar = ({ currentView, handleMenuClick, activeMenuItem, user, setUser }) => {
 
     return (
         <aside id="layout-menu" className="layout-menu menu-vertical menu bg-menu-theme open">
@@ -343,7 +286,8 @@ const Navbar = ({ currentView, setCurrentView, handleMenuClick, user, setUser, s
 };
 
 // create task form
-const CreateTask = ({ getMessage, setMessage, currentView, setCurrentView, }) => {
+const CreateTask = ({ getMessage, setMessage, currentView, setCurrentView, user, setUser, 
+    activeMenuItem, handleMenuClick}) => {
     // submitCreateTaskForm
     const submitCreateTaskForm = (e) => {
         e.preventDefault();
@@ -361,12 +305,12 @@ const CreateTask = ({ getMessage, setMessage, currentView, setCurrentView, }) =>
             .then(data => {
                 console.log(data);
                 if (data.status === 'success') {
-                    console.log('Task created successfully');
+                    console.log('Task created successfully');    
+                    setCurrentView('tasks-list'); // Set the view tasks-list
                 } else {
                     console.log('Failed to create task. Status:', data.status);
                 }
                 setMessage(data.message); // Update message
-                setCurrentView('tasks-list'); // Set the view tasks-list
                 form.reset(); // Reset the form
             })
             .catch((error) => {
@@ -388,7 +332,7 @@ const CreateTask = ({ getMessage, setMessage, currentView, setCurrentView, }) =>
                     <h5 className="mb-0">Create Task</h5>
                 </div>
                 <div className="card-body">
-                    <form method="POST" action="" id="createTaskForm" enctype="multipart/form-data" >
+                    <form method="POST" action="" id="createTaskForm" encType="multipart/form-data" >
                         {/* Title */}
                         <div className="form-floating form-floating-outline mb-4">
                             <input type="text" className="form-control" id="title" name="title" placeholder="Title" />
@@ -456,8 +400,8 @@ const CreateTask = ({ getMessage, setMessage, currentView, setCurrentView, }) =>
 };
 
 // Tasks List
-const TasksList = ({ currentView, setCurrentView, getMessage, setMessage, 
-    detailViewTask, taskPhotos, setDetailViewTask, setTaskPhotos }) => {
+const TasksList = ({ currentView, setCurrentView, getMessage, setMessage, user, setUser,
+    detailViewTask, taskPhotos, setDetailViewTask, setTaskPhotos, activeMenuItem, handleMenuClick }) => {
 
     // keep updated tasksList in a react state veriable
     const [tasksList, setTasksList] = React.useState([]);
@@ -620,8 +564,8 @@ const TasksList = ({ currentView, setCurrentView, getMessage, setMessage,
 };
 
 // View Task
-const ViewTask = ({ currentView, setCurrentView, getMessage, setMessage, 
-    detailViewTask, taskPhotos, setDetailViewTask, setTaskPhotos }) => {
+const ViewTask = ({ currentView, setCurrentView, getMessage, setMessage, user, setUser,
+    detailViewTask, taskPhotos, setDetailViewTask, setTaskPhotos, activeMenuItem, handleMenuClick }) => {
 
     // delete Task Photo
     const deleteTaskPhoto = (id) => {
@@ -654,7 +598,56 @@ const ViewTask = ({ currentView, setCurrentView, getMessage, setMessage,
             });
         }
     };
-    
+
+    // submitUpdateTaskForm
+    const submitUpdateTaskForm = (e) => {
+        e.preventDefault();
+        const form = document.getElementById('updateTaskForm');
+        const formData = new FormData(form);
+        console.log('FormData:', formData); // log FormData object
+
+        fetch(`/tasks/update-task/${detailViewTask.id}/`, {
+            method: 'PUT',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'), // Include the CSRF token
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                if (data.status === 'success') {
+                    console.log('Task updated successfully');
+                    setCurrentView('tasks-list'); // Set the view tasks-list
+                } else {
+                    console.log('Failed to update task. Status:', data.status);
+                }
+                setMessage(data.message); // Update message
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                setMessage('Internal Server Error'); // Use a generic error message here
+            });
+    };
+
+    // get all user list
+    const [usersList, setUsersList] = React.useState([]);
+    React.useEffect(() => {
+        fetch('/tasks/user-list')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                if (data.status === 'success') {
+                    setUsersList(data.usersList);
+                } else {
+                    console.log('Failed to fetch user list. Status:', data.status);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+    }, []);
+
     return (
         <div className="col-md-12 col-lg-6">
             {getMessage && (
@@ -665,12 +658,13 @@ const ViewTask = ({ currentView, setCurrentView, getMessage, setMessage,
             )}
             <div className="card mb-4">
                 <div className="card-header d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">View Task</h5>
+                    <h5 className="mb-0">View & Update Task</h5>
                 </div>
                 <div className="card-body">
-                    <form method="POST" action="" id="updateTaskForm" enctype="multipart/form-data" >
+                    <form method="POST" action="" id="updateTaskForm" encType="multipart/form-data" >
                         {/* Title */}
                         <div className="form-floating form-floating-outline mb-4">
+                            <input type="hidden" name="id" value={detailViewTask.id} />
                             <input type="text" className="form-control" id="title" name="title" placeholder="Title" 
                             value={detailViewTask.title}
                             onChange={(e) => { setDetailViewTask({ ...detailViewTask, title: e.target.value }); }}
@@ -683,9 +677,8 @@ const ViewTask = ({ currentView, setCurrentView, getMessage, setMessage,
                         <div className="form-floating form-floating-outline mb-4">
                             <textarea className="form-control" id="description" name="description" placeholder="Description" rows="3"
                             onChange={(e) => { setDetailViewTask({ ...detailViewTask, description: e.target.value }); }}
-                            >
-                                {detailViewTask.description}    
-                            </textarea>
+                            value={detailViewTask.description}
+                            ></textarea>
                             <label htmlFor="description">
                                 Description
                             </label>
@@ -714,13 +707,13 @@ const ViewTask = ({ currentView, setCurrentView, getMessage, setMessage,
                                     <div className="col-md-4 col-lg-4" key={index}>
                                         <div className="card mb-4">
                                             <img src={`${window.location.origin}/tasks${photo.image}`} className="card-img-top" alt="..." />
+                                            {/* delete photo */}
+                                            <button type="button" className="btn btn-danger btn-sm" 
+                                            onClick={(e) => { e.preventDefault(); deleteTaskPhoto(photo.id); }}
+                                            >
+                                                <i className="mdi mdi-trash-can-outline me-1"></i>
+                                            </button>
                                         </div>
-                                        {/* delete photo */}
-                                        <button type="button" className="btn btn-danger btn-sm" 
-                                        onClick={(e) => { e.preventDefault(); deleteTaskPhoto(photo.id); }}
-                                        >
-                                            <i className="mdi mdi-trash-can-outline me-1"></i>
-                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -770,16 +763,21 @@ const ViewTask = ({ currentView, setCurrentView, getMessage, setMessage,
                             </div>
                         </div>
                         {/* Assign To */}
-                        {/* <div className="form-floating form-floating-outline mb-4">
-                            <select className="form-select" id="assign_to" name="assign_to" aria-label="Assign To">
-                                <option selected>Assign To</option>
-                                <option value="1">Shamim</option>
-                                <option value="2">Rakib</option>
-                                <option value="3">Rakib</option>
-                            </select>
-                            <label htmlFor="assign_to">Assign To</label>
-                        </div> */}
-                        <button type="submit" className="btn btn-primary" >Update</button>
+                        {user.is_superuser && (
+                            <div className="form-floating form-floating-outline mb-4">
+                                <select className="form-select" id="user" name="user" aria-label="Assign To"
+                                onChange={(e) => { setDetailViewTask({ ...detailViewTask, user: e.target.value }); }}
+                                value={detailViewTask.user}
+                                >
+                                    <option>--</option>
+                                    {usersList.map((user, index) => (
+                                        <option key={index} value={user.id}>{user.username}</option>
+                                    ))}
+                                </select>
+                                <label htmlFor="user">Assign To</label>
+                            </div>
+                        )}
+                        <button type="submit" className="btn btn-primary"  onClick={submitUpdateTaskForm} >Update</button>
                     </form>
                 </div>
             </div>
@@ -793,7 +791,6 @@ const App = () => {
     const [getMessage, setMessage] = React.useState(null);
     const [currentView, setCurrentView] = React.useState('tasks-list');
     const [activeMenuItem, setActiveMenuItem] = React.useState(null);
-    const [activeMainMenuItem, setActiveMainMenuItem] = React.useState(null);
 
     // keep view-task with photos in a react state veriable
     const [detailViewTask, setDetailViewTask] = React.useState({});
@@ -801,12 +798,13 @@ const App = () => {
 
     // search
     const [searchQuery, setSearchQuery] = React.useState('');
-    console.log(searchQuery)
+    console.log(searchQuery) // Log search query
+
     
     // get logged in user details
     const [user, setUser] = React.useState({});
     React.useEffect(() => {
-        fetch('/tasks/')
+        fetch('/tasks/get-user-details')
             .then(response => response.json())
             .then(data => {
                 console.log('Success:', data);
@@ -820,7 +818,6 @@ const App = () => {
                 console.error('Error:', error);
             });
     }, []);
-
     
     // useEffect to remove the message after 10 seconds
     setTimeout(() => {
@@ -843,11 +840,6 @@ const App = () => {
         setCurrentView(view); // Update currentView
     });
 
-    const handleMainMenuClick = (view) => {
-        setActiveMainMenuItem(activeMainMenuItem === view ? null : view);
-    };
-
-
     return (
         <div>
             {/* <!-- Layout wrapper --> */}
@@ -855,8 +847,7 @@ const App = () => {
                 <div className="layout-container">
                     {/* <!-- Menu --> */}
                     <Sidebar currentView={currentView} setCurrentView={setCurrentView}
-                        handleMenuClick={handleMenuClick} handleMainMenuClick={handleMainMenuClick}
-                        activeMenuItem={activeMenuItem} activeMainMenuItem={activeMainMenuItem} 
+                        handleMenuClick={handleMenuClick} activeMenuItem={activeMenuItem} 
                         user={user} setUser={setUser} 
                         getMessage={getMessage} setMessage={setMessage} 
                         />
@@ -866,9 +857,11 @@ const App = () => {
                     <div className="layout-page">
 
                         {/* <!-- Navbar --> */}
-                        <Navbar handleMenuClick={handleMenuClick} user={user} setUser={setUser} 
+                        <Navbar handleMenuClick={handleMenuClick} activeMenuItem={activeMenuItem} 
+                            user={user} setUser={setUser} 
                             searchQuery={searchQuery} setSearchQuery={setSearchQuery} 
-                            currentView={currentView} setCurrentView={setCurrentView} />
+                            currentView={currentView} setCurrentView={setCurrentView} 
+                             />
                         {/* <!-- / Navbar --> */}
 
                         {/* <!-- Content wrapper --> */}
@@ -882,28 +875,39 @@ const App = () => {
                                         getMessage={getMessage} setMessage={setMessage}
                                         currentView={currentView} setCurrentView={setCurrentView} 
                                         detailViewTask={detailViewTask} taskPhotos={taskPhotos} 
-                                        setDetailViewTask={setDetailViewTask} setTaskPhotos={setTaskPhotos} />}
+                                        setDetailViewTask={setDetailViewTask} setTaskPhotos={setTaskPhotos} 
+                                        user={user} setUser={setUser} 
+                                        activeMenuItem={activeMenuItem} handleMenuClick={handleMenuClick}
+                                        />}
                                     
                                     {/* search-result */}
 
                                     {/* tasks-create */}
                                     {currentView === 'tasks-create' && <CreateTask
                                         getMessage={getMessage} setMessage={setMessage}
-                                        currentView={currentView} setCurrentView={setCurrentView} />}
+                                        currentView={currentView} setCurrentView={setCurrentView} 
+                                        user={user} setUser={setUser} 
+                                        activeMenuItem={activeMenuItem} handleMenuClick={handleMenuClick}
+                                        />}
                                     
                                     {/* change-password */}
                                     {currentView === 'change-password' && <ChangePassword
                                         getMessage={getMessage} setMessage={setMessage}
-                                        currentView={currentView} setCurrentView={setCurrentView} />}
+                                        currentView={currentView} setCurrentView={setCurrentView} 
+                                        user={user} setUser={setUser} 
+                                        activeMenuItem={activeMenuItem} handleMenuClick={handleMenuClick}
+                                        />}
                                     
                                     {/* view-task */}
                                     {currentView === 'view-task' && <ViewTask
                                         getMessage={getMessage} setMessage={setMessage}
                                         currentView={currentView} setCurrentView={setCurrentView}
                                         detailViewTask={detailViewTask} taskPhotos={taskPhotos} 
-                                        setDetailViewTask={setDetailViewTask} setTaskPhotos={setTaskPhotos} />}
+                                        setDetailViewTask={setDetailViewTask} setTaskPhotos={setTaskPhotos} 
+                                        user={user} setUser={setUser} 
+                                        activeMenuItem={activeMenuItem} handleMenuClick={handleMenuClick}
+                                        />}
                                     
-                                    {/* edit-task */}
 
                                 </div>
                             </div>

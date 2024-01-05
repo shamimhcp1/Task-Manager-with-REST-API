@@ -297,6 +297,27 @@ class FilterTaskView(View):
             traceback.print_exc()
             return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# SearchTaskView with TaskSerializer field title
+class SearchTaskView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Get query string
+            query = kwargs['query']
+            print('query: ', query)
+            # Get all tasks for the user and order by priority filtered by title
+            if request.user.is_superuser:
+                tasks = Task.objects.filter(title__icontains=query).order_by('priority')
+            else:
+                tasks = Task.objects.filter(user=request.user, title__icontains=query).order_by('priority')
+            # Create task serializer
+            serializer = TaskSerializer(tasks, many=True)
+            return JsonResponse({'status': 'success', 'tasksList': serializer.data})
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # User List
 class UserListView(View):
     def get(self, request, *args, **kwargs):

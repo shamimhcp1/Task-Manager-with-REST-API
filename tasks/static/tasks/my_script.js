@@ -109,7 +109,7 @@ const SearchInput = ({ searchQuery, setSearchQuery, currentView, setCurrentView,
                 placeholder="Search ..."
                 aria-label="Search ..."
                 value={searchQuery}
-                onChange={(e) => {setSearchQuery(e.target.value); setCurrentView('search-result');} }
+                onChange={(e) => {setSearchQuery(e.target.value); setCurrentView('tasks-list');} }
                 onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
@@ -924,7 +924,25 @@ const App = () => {
 
     // search
     const [searchQuery, setSearchQuery] = React.useState('');
-    
+    // search task with searchQuery
+    React.useEffect(() => {
+        fetch(`/tasks/search-task/${searchQuery}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                if (data.status === 'success') {
+                    setTasksList(data.tasksList);
+                } else {
+                    console.log('Failed to fetch tasks list. Status:', data.status);
+                }
+                setMessage(data.message); // Update message
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                setMessage('Internal Server Error'); // Use a generic error message here
+            })
+    }, [searchQuery === '' ? null : searchQuery]);
+
     // get logged in user details
     const [user, setUser] = React.useState({});
     React.useEffect(() => {

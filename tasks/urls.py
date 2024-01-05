@@ -28,6 +28,8 @@ urlpatterns = [
     path('update-task/<int:pk>/', views.UpdateTaskView.as_view(), name='update-task'),
     # filter-task
     path('filter-task/', views.FilterTaskView.as_view(), name='filter-task'),
+    # search-task
+    path('search-task/<str:query>/', views.SearchTaskView.as_view(), name='search-task'),
 
     # change-password
     path('change-password/', views.ChangePasswordView.as_view(), name='change-password'),

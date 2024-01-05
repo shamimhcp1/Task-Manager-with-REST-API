@@ -623,6 +623,38 @@ const TasksList = ({ currentView, setCurrentView, getMessage, setMessage,
 const ViewTask = ({ currentView, setCurrentView, getMessage, setMessage, 
     detailViewTask, taskPhotos, setDetailViewTask, setTaskPhotos }) => {
 
+    // delete Task Photo
+    const deleteTaskPhoto = (id) => {
+        if (confirm('Are you sure you want to delete this photo?')) {
+            fetch(`/tasks/delete-task-photo/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                if (data.status === 'success') {
+                    console.log('Task photo deleted successfully');
+                    // remove the deleted task photo from the taskPhotos
+                    const updatedTaskPhotos = taskPhotos.filter(photo => photo.id !== id);
+                    setTaskPhotos(updatedTaskPhotos);
+                } else {
+                    console.log('Failed to delete task photo. Status:', data.status);
+                }
+                setMessage(data.message); // Update message
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                setMessage('Internal Server Error'); // Use a generic error message here
+            })
+            .finally(() => {
+                setCurrentView('view-task'); // Set the view regardless of success or failure
+            });
+        }
+    };
+    
     return (
         <div className="col-md-12 col-lg-6">
             {getMessage && (
@@ -684,7 +716,9 @@ const ViewTask = ({ currentView, setCurrentView, getMessage, setMessage,
                                             <img src={`${window.location.origin}/tasks${photo.image}`} className="card-img-top" alt="..." />
                                         </div>
                                         {/* delete photo */}
-                                        <button type="button" className="btn btn-danger btn-sm" >
+                                        <button type="button" className="btn btn-danger btn-sm" 
+                                        onClick={(e) => { e.preventDefault(); deleteTaskPhoto(photo.id); }}
+                                        >
                                             <i className="mdi mdi-trash-can-outline me-1"></i>
                                         </button>
                                     </div>

@@ -22,6 +22,8 @@ urlpatterns = [
     path('delete-task/<int:pk>/', views.DeleteTaskView.as_view(), name='delete-task'),
     # view-task
     path('view-task/<int:pk>/', views.ViewTaskView.as_view(), name='view-task'),
+    # delete-task-photo
+    path('delete-task-photo/<int:pk>/', views.DeleteTaskPhotoView.as_view(), name='delete-task-photo'),
 
 
     # change-password

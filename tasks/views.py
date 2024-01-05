@@ -176,6 +176,29 @@ class ViewTaskView(View):
             traceback.print_exc()
             return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# DeleteTaskPhotoView
+class DeleteTaskPhotoView(View):
+    def delete(self, request, *args, **kwargs):
+        try:
+            photo = Photo.objects.get(id=kwargs['pk'])
+            # check if user is superuser
+            if request.user.is_superuser:
+                pass
+            else:
+                # check if user is authorized to delete the photo
+                if photo.task.user != request.user:
+                    return JsonResponse({'status': 'error', 'message': 'You are not authorized to delete this photo'}, status=status.HTTP_401_UNAUTHORIZED)
+            # Delete the photo and delete the file
+            photo.image.delete()
+            photo.delete()
+            return JsonResponse({'status': 'success', 'message': 'Photo deleted successfully'})
+        except Photo.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Photo does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # Logout
 class LogoutView(View):
     def get(self, request, *args, **kwargs):

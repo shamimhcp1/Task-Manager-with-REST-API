@@ -401,10 +401,9 @@ const CreateTask = ({ getMessage, setMessage, currentView, setCurrentView, user,
 
 // Tasks List
 const TasksList = ({ currentView, setCurrentView, getMessage, setMessage, user, setUser,
-    detailViewTask, taskPhotos, setDetailViewTask, setTaskPhotos, activeMenuItem, handleMenuClick }) => {
-
-    // keep updated tasksList in a react state veriable
-    const [tasksList, setTasksList] = React.useState([]);
+    detailViewTask, taskPhotos, setDetailViewTask, setTaskPhotos, activeMenuItem, handleMenuClick, 
+    tasksList, setTasksList
+    }) => {
     
     // fetch tasks list
     React.useEffect(() => {
@@ -479,87 +478,111 @@ const TasksList = ({ currentView, setCurrentView, getMessage, setMessage, user, 
             });
     };
 
+    // handleFilterClick
+    const [isFilterVisible, setIsFilterVisible] = React.useState(false);
+    const handleFilterClick = () => {
+        setIsFilterVisible(!isFilterVisible); // Toggle the filter visibility
+    };
+
+
     return (
-        <div className="col-md-12 col-lg-12">
+        <div>
             {getMessage && (
-                <div className="alert alert-success alert-dismissible fade show" role="alert">
-                    {getMessage}
-                    <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
+                    <div className="alert alert-success alert-dismissible fade show" role="alert">
+                        {getMessage}
+                        <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
             )}
-            <div className="card">
-                <h5 className="card-header">Tasks List</h5>
-                <div className="table-responsive text-nowrap">
-                    <table className="table">
-                        <thead className="table-light">
-                            <tr>
-                                <th className="text-truncate">SL</th>
-                                <th className="text-truncate">Title</th>
-                                <th className="text-truncate">Priority</th>
-                                <th className="text-truncate">Status</th>
-                                <th className="text-truncate">Due Date</th>
-                                <th className="text-truncate">Assign To</th>
-                                <th className="text-truncate">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {/* display loading bar before buyerlist show */}
-                            {tasksList.length === 0 && (
+            
+            {/* filter */}
+            {isFilterVisible && (
+            <TasksFilter 
+            tasksList={tasksList} setTasksList={setTasksList} handleFilterClick={handleFilterClick}
+            currentView={currentView} setCurrentView={setCurrentView} getMessage={getMessage} setMessage={setMessage}
+            />)}
+            
+            <div className="col-md-12 col-lg-12">
+                <div className="card">
+                    <h5 className="card-header">Tasks List
+                        {/* filter */}
+                        <button type="button" className="btn btn-primary btn-sm float-end" onClick={(e) => { e.preventDefault(); handleFilterClick(); }}>
+                            <i className="mdi mdi-filter-variant me-1"></i>
+                            Filter
+                        </button>
+                    </h5>
+                    <div className="table-responsive text-nowrap">
+                        <table className="table">
+                            <thead className="table-light">
                                 <tr>
-                                    <td colSpan="7" className="text-center">
-                                        <div className="spinner-border text-primary" role="status">
-                                            <span className="visually-hidden">Loading...</span>
-                                        </div>
-                                    </td>
+                                    <th className="text-truncate">SL</th>
+                                    <th className="text-truncate">Title</th>
+                                    <th className="text-truncate">Priority</th>
+                                    <th className="text-truncate">Status</th>
+                                    <th className="text-truncate">Due Date</th>
+                                    <th className="text-truncate">Assign To</th>
+                                    <th className="text-truncate">Action</th>
                                 </tr>
-                            )}
-                            
-                            {tasksList.map((task, index) => (
-                                <tr key={index}>
-                                    <td className="text-truncate">{index + 1}</td>
-                                    <td className="text-truncate">{task.title}</td>
-                                    <td className="text-truncate">
-                                        {task.priority === 'low' ? <span className="badge bg-success">Low</span> : task.priority === 'medium' ? <span className="badge bg-warning">Medium</span> : <span className="badge bg-danger">High</span>}
-                                    </td>
-                                    <td className="text-truncate">
-                                        {task.is_complete ? <span className="badge bg-success">Complete</span> : <span className="badge bg-danger">In-complete</span>}
-                                    </td>
-                                    <td className="text-truncate">
-                                        {/* due_date format only date dd-mm-yyyy */}
-                                        {task.due_date.split('T')[0].split('-').reverse().join('-')}
-                                    </td>
-                                    <td className="text-truncate">
-                                        {task.assign_to}
-                                  </td>
-                                    <td className="text-truncate">
-                                        <div className="dropdown">
-                                            <button type="button" className="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                                <i className="mdi mdi-dots-vertical"></i>
-                                            </button>
-                                            <div className="dropdown-menu">
-                                                {/* view */}
-                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); viewTask(task.id); }}>
-                                                    <i className="mdi mdi-eye-outline me-1"></i> View
-                                                </a>
-                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); viewTask(task.id); }}>
-                                                    <i className="mdi mdi-pencil-outline me-1"></i> Edit
-                                                </a>
-                                                {/* delete */}
-                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); deleteTask(task.id); }}>
-                                                    <i className="mdi mdi-trash-can-outline me-1"></i> Delete
-                                                </a>
-
+                            </thead>
+                            <tbody>
+                                {/* display loading bar before buyerlist show */}
+                                {tasksList.length === 0 && (
+                                    <tr>
+                                        <td colSpan="7" className="text-center">
+                                            <div className="spinner-border text-primary" role="status">
+                                                <span className="visually-hidden">Loading...</span>
                                             </div>
-                                        </div>
+                                        </td>
+                                    </tr>
+                                )}
+                                
+                                {tasksList.map((task, index) => (
+                                    <tr key={index}>
+                                        <td className="text-truncate">{index + 1}</td>
+                                        <td className="text-truncate">{task.title}</td>
+                                        <td className="text-truncate">
+                                            {task.priority === 'low' ? <span className="badge bg-success">Low</span> : task.priority === 'medium' ? <span className="badge bg-warning">Medium</span> : <span className="badge bg-danger">High</span>}
+                                        </td>
+                                        <td className="text-truncate">
+                                            {task.is_complete ? <span className="badge bg-success">Complete</span> : <span className="badge bg-danger">In-complete</span>}
+                                        </td>
+                                        <td className="text-truncate">
+                                            {/* due_date format only date dd-mm-yyyy */}
+                                            {task.due_date.split('T')[0].split('-').reverse().join('-')}
+                                        </td>
+                                        <td className="text-truncate">
+                                            {task.assign_to}
                                     </td>
-                                </tr>
-                            ))}
+                                        <td className="text-truncate">
+                                            <div className="dropdown">
+                                                <button type="button" className="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                                    <i className="mdi mdi-dots-vertical"></i>
+                                                </button>
+                                                <div className="dropdown-menu">
+                                                    {/* view */}
+                                                    <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); viewTask(task.id); }}>
+                                                        <i className="mdi mdi-eye-outline me-1"></i> View
+                                                    </a>
+                                                    <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); viewTask(task.id); }}>
+                                                        <i className="mdi mdi-pencil-outline me-1"></i> Edit
+                                                    </a>
+                                                    {/* delete */}
+                                                    <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); deleteTask(task.id); }}>
+                                                        <i className="mdi mdi-trash-can-outline me-1"></i> Delete
+                                                    </a>
 
-                        </tbody>
-                    </table>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
+        
     );
 };
 
@@ -789,6 +812,104 @@ const ViewTask = ({ currentView, setCurrentView, getMessage, setMessage, user, s
     );
 };
 
+// Tasks Filter
+const TasksFilter = (
+    { getMessage, setMessage, currentView, setCurrentView,
+        handleFilterClick, tasksList, setTasksList }
+) => {
+
+    // submitFilterTaskForm
+    const submitFilterTaskForm = (e) => {
+        e.preventDefault();
+        const form = document.getElementById('filterTaskForm');
+        const formData = new FormData(form);
+
+        fetch('/tasks/filter-task/', {
+            method: 'POST',
+            body: formData, // Use formData directly
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                if (data.status === 'success') {
+                    console.log('Task filtered successfully');    
+                    setTasksList(data.tasksList);
+                    handleFilterClick(); // close the filter
+                } else {
+                    console.log('Failed to filter task. Status:', data.status);
+                }
+                setMessage(data.message); // Update message
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                setMessage('Internal Server Error'); // Use a generic error message here
+            });
+    };
+
+    return (
+        <div className="col-md-12 col-lg-6">
+                <div className="card mb-12">
+                    <div className="card-header d-flex justify-content-between align-items-center">
+                        <h5 className="mb-0">Filter Task</h5>
+                    </div>
+                    <div className="card-body">
+                        <form method="POST" action="" id="filterTaskForm" >
+                            {/* Create Date */}
+                            <div className="form-floating form-floating-outline mb-4">
+                                <input type="date" className="form-control" id="creation_date" name="creation_date" placeholder="Creation Date" />
+                                <label htmlFor="creation_date">Create Date</label>
+                            </div>
+                            {/* Due Date */}
+                            <div className="form-floating form-floating-outline mb-4">
+                                <input type="date" className="form-control" id="due_date" name="due_date" placeholder="Due Date" />
+                                <label htmlFor="due_date">Due Date</label>
+                            </div>
+                            {/* priority*/}
+                            <p><small>Priority</small></p>
+                            <div className="form-floating form-floating-outline mb-4">
+                                <div className="form-check form-check-inline">
+                                    <input className="form-check-input" type="radio" name="priority" id="priority_low" value="low" />
+                                    <label className="form-check-label" htmlFor="priority_low">Low</label>
+                                </div>
+                                <div className="form-check form-check-inline">
+                                    <input className="form-check-input" type="radio" name="priority" id="priority_medium" value="medium" />
+                                    <label className="form-check-label" htmlFor="priority_medium">Medium</label>
+                                </div>
+                                <div className="form-check form-check-inline">
+                                    <input className="form-check-input" type="radio" name="priority" id="priority_high" value="high" />
+                                    <label className="form-check-label" htmlFor="priority_high">High</label>
+                                </div>
+                            </div>
+                            {/* Status */}
+                            <p><small>Status</small></p>
+                            <div className="form-floating form-floating-outline mb-4">
+                                <div className="form-check form-check-inline">
+                                    <input className="form-check-input" type="radio" name="is_complete" id="is_complete_true" value="1" />
+                                    <label className="form-check-label" htmlFor="is_complete_true">Complete</label>
+                                </div>
+                                <div className="form-check form-check-inline">
+                                    <input className="form-check-input" type="radio" name="is_complete" id="is_complete_false" value="0" />
+                                    <label className="form-check-label" htmlFor="is_complete_false">In-complete</label>
+                                </div>
+                            </div>
+                            <button type="submit" className="btn btn-primary" 
+                            onClick={submitFilterTaskForm}
+                            >Apply Filter</button>
+                            {/* close button outline */}
+                            <button type="button" className="btn btn-outline-primary ms-2" onClick={(e) => { e.preventDefault(); handleFilterClick(); }}>Close</button>
+                            
+                        </form>
+                    </div>
+                </div>
+                <hr />
+            </div>
+    );
+};
+    
+
 const App = () => {
     
     // keep updated buyer in a react state veriable
@@ -797,6 +918,7 @@ const App = () => {
     const [activeMenuItem, setActiveMenuItem] = React.useState(null);
 
     // keep view-task with photos in a react state veriable
+    const [tasksList, setTasksList] = React.useState([]);
     const [detailViewTask, setDetailViewTask] = React.useState({});
     const [taskPhotos, setTaskPhotos] = React.useState([]);
 
@@ -880,6 +1002,7 @@ const App = () => {
                                         setDetailViewTask={setDetailViewTask} setTaskPhotos={setTaskPhotos} 
                                         user={user} setUser={setUser} 
                                         activeMenuItem={activeMenuItem} handleMenuClick={handleMenuClick}
+                                        tasksList={tasksList} setTasksList={setTasksList}
                                         />}
                                     
                                     {/* search-result */}

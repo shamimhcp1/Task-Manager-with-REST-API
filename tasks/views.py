@@ -1,7 +1,7 @@
 import json
 import traceback
 from datetime import datetime, time
-import base64
+from django.utils import timezone
 
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponse, QueryDict
@@ -12,6 +12,7 @@ from django.urls import reverse
 from django.core.files.base import ContentFile
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.utils.dateparse import parse_date
 
 from . serializers import TaskSerializer, PhotoSerializer, UserSerializer
 from . models import Task, Photo
@@ -247,6 +248,50 @@ class UpdateTaskView(View):
             return JsonResponse({'status': 'success', 'message': 'Task updated successfully'})
         except Task.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Task does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# filter-task with TaskSerializer by submitFilterTaskForm
+class FilterTaskView(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            # Use request.POST for form data
+            data = request.POST.dict()
+            print(data)  # Log the data
+
+            # Optional filter parameters
+            due_date_str = data.get('due_date', None)
+            creation_date_str = data.get('creation_date', None)
+            priority = data.get('priority', None)
+            is_complete = data.get('is_complete', None)
+
+            # Convert date strings to datetime if provided
+            due_datetime = datetime.combine(parse_date(due_date_str), time()) if due_date_str else None
+            creation_datetime = timezone.make_aware(datetime.datetime.strptime(creation_date_str, "%Y-%m-%d")) if creation_date_str else None   
+
+            # Build filter conditions based on provided data
+            filter_conditions = {}
+            if due_datetime:
+                filter_conditions['due_date'] = due_datetime
+            if creation_datetime:
+                filter_conditions['creation_date'] = creation_datetime
+            if priority is not None:
+                filter_conditions['priority'] = priority
+            if is_complete is not None:
+                filter_conditions['is_complete'] = is_complete
+
+            # Get all tasks for the user and order by priority filtered by due_date, creation_date, priority, is_complete
+            if request.user.is_superuser:
+                tasks = Task.objects.filter(**filter_conditions).order_by('priority')
+            else:
+                filter_conditions['user'] = request.user
+                tasks = Task.objects.filter(**filter_conditions).order_by('priority')
+
+            # Create task serializer
+            serializer = TaskSerializer(tasks, many=True)
+            return JsonResponse({'status': 'success', 'tasksList': serializer.data})
         except Exception as e:
             print(e)
             traceback.print_exc()

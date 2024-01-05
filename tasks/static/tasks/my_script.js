@@ -366,12 +366,12 @@ const CreateTask = ({ getMessage, setMessage, currentView, setCurrentView, }) =>
                     console.log('Failed to create task. Status:', data.status);
                 }
                 setMessage(data.message); // Update message
+                setCurrentView('tasks-list'); // Set the view tasks-list
                 form.reset(); // Reset the form
             })
             .catch((error) => {
                 console.error('Error:', error);
                 setMessage('Internal Server Error'); // Use a generic error message here
-                form.reset(); // Reset the form
             });
     };
 
@@ -479,32 +479,38 @@ const TasksList = ({ currentView, setCurrentView, getMessage, setMessage }) => {
             });
     }, []);
 
-    // deleteTask
-    const deleteTask = (taskId) => {
-        fetch(`/tasks/delete-task/${taskId}`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-            },
-        })
+    // delete Task
+    const deleteTask = (id) => {
+        if (confirm('Are you sure you want to delete this task?')) {
+            fetch(`/tasks/delete-task/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+            })
             .then(response => response.json())
             .then(data => {
                 console.log('Success:', data);
                 if (data.status === 'success') {
                     console.log('Task deleted successfully');
+                    // remove the deleted task from the tasksList
+                    const updatedTasksList = tasksList.filter(task => task.id !== id);
+                    setTasksList(updatedTasksList);
                 } else {
                     console.log('Failed to delete task. Status:', data.status);
                 }
                 setMessage(data.message); // Update message
-                // remove the deleted task from the tasksList
-                const updatedTasksList = tasksList.filter(task => task.id !== id);
-                setTasksList(updatedTasksList);
             })
             .catch((error) => {
                 console.error('Error:', error);
                 setMessage('Internal Server Error'); // Use a generic error message here
+            })
+            .finally(() => {
+                setCurrentView('tasks-list'); // Set the view regardless of success or failure
             });
+        }
     };
+
 
     return (
         <div className="col-md-12 col-lg-12">
@@ -565,14 +571,18 @@ const TasksList = ({ currentView, setCurrentView, getMessage, setMessage }) => {
                                             </button>
                                             <div className="dropdown-menu">
                                                 {/* view */}
-                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault; viewTask(task.id) }}
-                                                ><i className="mdi mdi-eye-outline me-1"></i> View</a>
+                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); viewTask(task.id); }}>
+                                                    <i className="mdi mdi-eye-outline me-1"></i> View
+                                                </a>
                                                 {/* edit */}
-                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault; editTask(task.id) }}
-                                                ><i className="mdi mdi-pencil-outline me-1"></i> Edit</a>
+                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); editTask(task.id); }}>
+                                                    <i className="mdi mdi-pencil-outline me-1"></i> Edit
+                                                </a>
                                                 {/* delete */}
-                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault; deleteTask(task.id) }}
-                                                ><i className="mdi mdi-trash-can-outline me-1"></i> Delete</a>
+                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); deleteTask(task.id); }}>
+                                                    <i className="mdi mdi-trash-can-outline me-1"></i> Delete
+                                                </a>
+
                                             </div>
                                         </div>
                                     </td>

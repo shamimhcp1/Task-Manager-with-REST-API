@@ -125,13 +125,28 @@ class LoginView(View):
             })
             
 
-# Delete Task
+# Delete Task and photos
 class DeleteTaskView(View):
     def delete(self, request, *args, **kwargs):
         try:
-            task = get_object_or_404(Task, pk=kwargs['pk'])
+            task = Task.objects.get(id=kwargs['pk'])
+            # check if user is superuser
+            if request.user.is_superuser:
+                pass
+            else:
+                # check if user is authorized to delete the task
+                if task.user != request.user:
+                    return JsonResponse({'status': 'error', 'message': 'You are not authorized to delete this task'}, status=status.HTTP_401_UNAUTHORIZED)
+                
+            # Delete all photos related to this task and delete the files
+            for photo in task.photos.all():
+                photo.image.delete()
+                photo.delete()
+            # Delete the task
             task.delete()
             return JsonResponse({'status': 'success', 'message': 'Task deleted successfully'})
+        except Task.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Task does not exist'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             print(e)
             traceback.print_exc()

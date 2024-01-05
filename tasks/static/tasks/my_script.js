@@ -15,7 +15,7 @@ const ChangePassword = ({ getMessage, setMessage, currentView, setCurrentView, u
             formDataObject[key] = value;
         });
 
-        fetch('/tasks/change-password', {
+        fetch('/tasks/change-password/', {
             method: 'PUT',
             body: JSON.stringify(formDataObject),
             headers: {
@@ -40,7 +40,6 @@ const ChangePassword = ({ getMessage, setMessage, currentView, setCurrentView, u
                 form.reset(); // Reset the form
             });
     };
-
 
     return (
         <div class="col-md-12 col-lg-6">

@@ -152,6 +152,30 @@ class DeleteTaskView(View):
             traceback.print_exc()
             return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# view-task
+class ViewTaskView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            task = Task.objects.get(id=kwargs['pk'])
+            # check if user is superuser
+            if request.user.is_superuser:
+                pass
+            else:
+                # check if user is authorized to view the task
+                if task.user != request.user:
+                    return JsonResponse({'status': 'error', 'message': 'You are not authorized to view this task'}, status=status.HTTP_401_UNAUTHORIZED)
+            # Create task serializer
+            serializer = TaskSerializer(task)
+            # Create photo serializer
+            photo_serializer = PhotoSerializer(task.photos.all(), many=True)
+            return JsonResponse({'status': 'success', 'task': serializer.data, 'photos': photo_serializer.data})
+        except Task.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Task does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # Logout
 class LogoutView(View):
     def get(self, request, *args, **kwargs):

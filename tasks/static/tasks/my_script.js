@@ -456,7 +456,9 @@ const CreateTask = ({ getMessage, setMessage, currentView, setCurrentView, }) =>
 };
 
 // Tasks List
-const TasksList = ({ currentView, setCurrentView, getMessage, setMessage }) => {
+const TasksList = ({ currentView, setCurrentView, getMessage, setMessage, 
+    detailViewTask, taskPhotos, setDetailViewTask, setTaskPhotos }) => {
+
     // keep updated tasksList in a react state veriable
     const [tasksList, setTasksList] = React.useState([]);
     
@@ -510,7 +512,28 @@ const TasksList = ({ currentView, setCurrentView, getMessage, setMessage }) => {
             });
         }
     };
-
+    
+    // viewTask with photos
+    const viewTask = (id) => {
+        fetch(`/tasks/view-task/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                if (data.status === 'success') {
+                    console.log('Task viewed successfully');
+                    setDetailViewTask(data.task);
+                    setTaskPhotos(data.photos);
+                    setCurrentView('view-task'); // Set the view
+                } else {
+                    console.log('Failed to view task. Status:', data.status);
+                }
+                setMessage(data.message); // Update message
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                setMessage('Internal Server Error'); // Use a generic error message here
+            });
+    };
 
     return (
         <div className="col-md-12 col-lg-12">
@@ -574,8 +597,7 @@ const TasksList = ({ currentView, setCurrentView, getMessage, setMessage }) => {
                                                 <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); viewTask(task.id); }}>
                                                     <i className="mdi mdi-eye-outline me-1"></i> View
                                                 </a>
-                                                {/* edit */}
-                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); editTask(task.id); }}>
+                                                <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); viewTask(task.id); }}>
                                                     <i className="mdi mdi-pencil-outline me-1"></i> Edit
                                                 </a>
                                                 {/* delete */}
@@ -597,13 +619,151 @@ const TasksList = ({ currentView, setCurrentView, getMessage, setMessage }) => {
     );
 };
 
+// View Task
+const ViewTask = ({ currentView, setCurrentView, getMessage, setMessage, 
+    detailViewTask, taskPhotos, setDetailViewTask, setTaskPhotos }) => {
+
+    return (
+        <div className="col-md-12 col-lg-6">
+            {getMessage && (
+                <div className="alert alert-success alert-dismissible fade show" role="alert">
+                    {getMessage}
+                    <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            )}
+            <div className="card mb-4">
+                <div className="card-header d-flex justify-content-between align-items-center">
+                    <h5 className="mb-0">View Task</h5>
+                </div>
+                <div className="card-body">
+                    <form method="POST" action="" id="updateTaskForm" enctype="multipart/form-data" >
+                        {/* Title */}
+                        <div className="form-floating form-floating-outline mb-4">
+                            <input type="text" className="form-control" id="title" name="title" placeholder="Title" 
+                            value={detailViewTask.title}
+                            onChange={(e) => { setDetailViewTask({ ...detailViewTask, title: e.target.value }); }}
+                            />
+                            <label htmlFor="title">
+                                Title
+                            </label>    
+                        </div>
+                        {/* Description */}
+                        <div className="form-floating form-floating-outline mb-4">
+                            <textarea className="form-control" id="description" name="description" placeholder="Description" rows="3"
+                            onChange={(e) => { setDetailViewTask({ ...detailViewTask, description: e.target.value }); }}
+                            >
+                                {detailViewTask.description}    
+                            </textarea>
+                            <label htmlFor="description">
+                                Description
+                            </label>
+                            
+                        </div>
+                        {/* Due Date */}
+                        <div className="form-floating form-floating-outline mb-4">
+                            <input type="date" className="form-control" id="due_date" name="due_date" placeholder="Due Date" 
+                            // from django date to html date format
+                            value={detailViewTask.due_date.split('T')[0]}
+                            onChange={(e) => { setDetailViewTask({ ...detailViewTask, due_date: e.target.value }); }}
+                            />
+                            <label htmlFor="due_date">
+                                Due Date
+                            </label>
+                        </div>
+                        {/* Photos */}
+                        <div className="form-floating form-floating-outline mb-4">
+                            <input type="file" className="form-control" id="photos" name="photos" placeholder="Photos" multiple />
+                            <label htmlFor="photos">Photos</label>
+                        </div>
+                        {/* show photos from taskPhotos*/}
+                        {taskPhotos.length > 0 && (
+                            <div className="row">
+                                {taskPhotos.map((photo, index) => (
+                                    <div className="col-md-4 col-lg-4" key={index}>
+                                        <div className="card mb-4">
+                                            <img src={`${window.location.origin}/tasks${photo.image}`} className="card-img-top" alt="..." />
+                                        </div>
+                                        {/* delete photo */}
+                                        <button type="button" className="btn btn-danger btn-sm" >
+                                            <i className="mdi mdi-trash-can-outline me-1"></i>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* priority*/}
+                        <div className="form-floating form-floating-outline mb-4">
+                            <p><small>Priority</small></p>
+                            <div className="form-check form-check-inline">
+                                <input className="form-check-input" type="radio" name="priority" id="priority_low" value="low" 
+                                defaultChecked={detailViewTask.priority === 'low' ? true : false}
+                                onChange={(e) => { setDetailViewTask({ ...detailViewTask, priority: e.target.value }); }}
+                                />
+                                <label className="form-check-label" htmlFor="priority_low">Low</label>
+                            </div>
+                            <div className="form-check form-check-inline">
+                                <input className="form-check-input" type="radio" name="priority" id="priority_medium" value="medium" 
+                                defaultChecked={detailViewTask.priority === 'medium' ? true : false}
+                                onChange={(e) => { setDetailViewTask({ ...detailViewTask, priority: e.target.value }); }}
+                                />
+                                <label className="form-check-label" htmlFor="priority_medium">Medium</label>
+                            </div>
+                            <div className="form-check form-check-inline">
+                                <input className="form-check-input" type="radio" name="priority" id="priority_high" value="high" 
+                                defaultChecked={detailViewTask.priority === 'high' ? true : false}
+                                onChange={(e) => { setDetailViewTask({ ...detailViewTask, priority: e.target.value }); }}
+                                />
+                                <label className="form-check-label" htmlFor="priority_high">High</label>
+                            </div>
+                        </div>
+                        {/* Status */}
+                        <div className="form-floating form-floating-outline mb-4">
+                            <p><small>Status</small></p>
+                            <div className="form-check form-check-inline">
+                                <input className="form-check-input" type="radio" name="is_complete" id="is_complete_true" value="1" 
+                                defaultChecked={detailViewTask.is_complete ? true : false}
+                                onChange={(e) => { setDetailViewTask({ ...detailViewTask, is_complete: e.target.value }); }}
+                                />
+                                <label className="form-check-label" htmlFor="is_complete_true">Complete</label>
+                            </div>
+                            <div className="form-check form-check-inline">
+                                <input className="form-check-input" type="radio" name="is_complete" id="is_complete_false" value="0" 
+                                defaultChecked={detailViewTask.is_complete ? false : true}
+                                onChange={(e) => { setDetailViewTask({ ...detailViewTask, is_complete: e.target.value }); }}
+                                />
+                                <label className="form-check-label" htmlFor="is_complete_false">In-complete</label>
+                            </div>
+                        </div>
+                        {/* Assign To */}
+                        {/* <div className="form-floating form-floating-outline mb-4">
+                            <select className="form-select" id="assign_to" name="assign_to" aria-label="Assign To">
+                                <option selected>Assign To</option>
+                                <option value="1">Shamim</option>
+                                <option value="2">Rakib</option>
+                                <option value="3">Rakib</option>
+                            </select>
+                            <label htmlFor="assign_to">Assign To</label>
+                        </div> */}
+                        <button type="submit" className="btn btn-primary" >Update</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const App = () => {
+    
     // keep updated buyer in a react state veriable
     const [getMessage, setMessage] = React.useState(null);
     const [currentView, setCurrentView] = React.useState('tasks-list');
     const [activeMenuItem, setActiveMenuItem] = React.useState(null);
     const [activeMainMenuItem, setActiveMainMenuItem] = React.useState(null);
+
+    // keep view-task with photos in a react state veriable
+    const [detailViewTask, setDetailViewTask] = React.useState({});
+    const [taskPhotos, setTaskPhotos] = React.useState([]);
 
     // search
     const [searchQuery, setSearchQuery] = React.useState('');
@@ -686,7 +846,9 @@ const App = () => {
                                     {/* tasks-list */}
                                     {currentView === 'tasks-list' && <TasksList
                                         getMessage={getMessage} setMessage={setMessage}
-                                        currentView={currentView} setCurrentView={setCurrentView} />}
+                                        currentView={currentView} setCurrentView={setCurrentView} 
+                                        detailViewTask={detailViewTask} taskPhotos={taskPhotos} 
+                                        setDetailViewTask={setDetailViewTask} setTaskPhotos={setTaskPhotos} />}
                                     
                                     {/* search-result */}
 
@@ -700,6 +862,14 @@ const App = () => {
                                         getMessage={getMessage} setMessage={setMessage}
                                         currentView={currentView} setCurrentView={setCurrentView} />}
                                     
+                                    {/* view-task */}
+                                    {currentView === 'view-task' && <ViewTask
+                                        getMessage={getMessage} setMessage={setMessage}
+                                        currentView={currentView} setCurrentView={setCurrentView}
+                                        detailViewTask={detailViewTask} taskPhotos={taskPhotos} 
+                                        setDetailViewTask={setDetailViewTask} setTaskPhotos={setTaskPhotos} />}
+                                    
+                                    {/* edit-task */}
 
                                 </div>
                             </div>

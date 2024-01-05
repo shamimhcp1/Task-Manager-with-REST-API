@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     # index
@@ -18,6 +20,8 @@ urlpatterns = [
     path('tasks-list/', views.TasksListView.as_view(), name='tasks-list'),
     # delete-task
     path('delete-task/<int:pk>/', views.DeleteTaskView.as_view(), name='delete-task'),
+    # view-task
+    path('view-task/<int:pk>/', views.ViewTaskView.as_view(), name='view-task'),
 
 
     # change-password
@@ -25,3 +29,6 @@ urlpatterns = [
     # get-user-details
     path('get-user-details/', views.GetUserDetailsView.as_view(), name='get-user-details'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

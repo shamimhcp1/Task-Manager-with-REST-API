@@ -22,7 +22,7 @@ class Task(models.Model):
 
 class Photo(models.Model):
     task = models.ForeignKey(Task, related_name='photos', on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='tasks/static/tasks/task_photos/')
+    image = models.ImageField(upload_to='tasks/task_photos/')
 
     def __str__(self):
         return f"Photo for Task: {self.task.title} ({self.task.user.username}) - {self.task.priority} - {self.task.is_complete}"

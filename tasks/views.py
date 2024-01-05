@@ -4,12 +4,14 @@ from datetime import datetime, time
 import base64
 
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponse, QueryDict
 from django.views import View
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.core.files.base import ContentFile
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 from . serializers import TaskSerializer, PhotoSerializer, UserSerializer
 from . models import Task, Photo
@@ -17,7 +19,8 @@ from . models import Task, Photo
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import serializers, status
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.views import APIView
 
 
 # Create your views here.
@@ -171,32 +174,34 @@ class DeleteTaskPhotoView(View):
             return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Update Task
+@method_decorator(csrf_exempt, name='dispatch')
 class UpdateTaskView(View):
-    parser_classes = [MultiPartParser]
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
-    def put(self, request, *args, **kwargs):
-        print('Request Data:', request.data)
+    def patch(self, request, *args, **kwargs):
+        body_unicode = request.body.decode('utf-8')
+        body_data = json.loads(body_unicode)
+        print('Request Data:', body_data)
         print('Request Files:', request.FILES)
-        
+
         try:
             task = Task.objects.get(id=kwargs['pk'])
-            print(request.POST.get('user'))
             # check if user is superuser
             if request.user.is_superuser:
-                user = User.objects.get(id=request.POST.get('user'))
+                user = User.objects.get(id=body_data.get('user'))
             else:
                 # check if user is authorized to update the task
                 if task.user != request.user:
                     return JsonResponse({'status': 'error', 'message': 'You are not authorized to update this task'}, status=status.HTTP_401_UNAUTHORIZED)
                 user = request.user
 
-            # Use request.POST.get for form data
+            # Use body_data.get for form data
             data = {
-                'title': request.POST.get('title'),
-                'description': request.POST.get('description'),
-                'due_date': request.POST.get('due_date'),
-                'priority': request.POST.get('priority'),
-                'is_complete': request.POST.get('is_complete'),
+                'title': body_data.get('title'),
+                'description': body_data.get('description'),
+                'due_date': body_data.get('due_date'),
+                'priority': body_data.get('priority'),
+                'is_complete': body_data.get('is_complete'),
                 'user': user,
             }
             print(data) # Log the data
@@ -227,8 +232,9 @@ class UpdateTaskView(View):
             task.due_date = due_date
             task.priority = data['priority']
             task.is_complete = data['is_complete']
+            task.user = user
             task.save()
-
+            
             # Check if photos
             if 'photos' in request.FILES:
                 for photo_data in request.FILES.getlist('photos'):

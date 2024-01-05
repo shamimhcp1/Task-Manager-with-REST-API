@@ -604,12 +604,15 @@ const ViewTask = ({ currentView, setCurrentView, getMessage, setMessage, user, s
         e.preventDefault();
         const form = document.getElementById('updateTaskForm');
         const formData = new FormData(form);
-        console.log('FormData:', formData); // log FormData object
+
+        const data = {};
+        formData.forEach((value, key) => {data[key] = value});
 
         fetch(`/tasks/update-task/${detailViewTask.id}/`, {
-            method: 'PUT',
-            body: formData,
+            method: 'PATCH',
+            body: JSON.stringify(data),
             headers: {
+                'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken'), // Include the CSRF token
             },
         })
@@ -623,13 +626,14 @@ const ViewTask = ({ currentView, setCurrentView, getMessage, setMessage, user, s
                     console.log('Failed to update task. Status:', data.status);
                 }
                 setMessage(data.message); // Update message
+                form.reset(); // Reset the form
             })
             .catch((error) => {
                 console.error('Error:', error);
                 setMessage('Internal Server Error'); // Use a generic error message here
+                form.reset(); // Reset the form
             });
-    };
-
+    }
     // get all user list
     const [usersList, setUsersList] = React.useState([]);
     React.useEffect(() => {
@@ -798,8 +802,6 @@ const App = () => {
 
     // search
     const [searchQuery, setSearchQuery] = React.useState('');
-    console.log(searchQuery) // Log search query
-
     
     // get logged in user details
     const [user, setUser] = React.useState({});
